@@ -75,15 +75,37 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 var secretKey = builder.Configuration["JwtSettings:Secret"] 
     ?? throw new InvalidOperationException("La clave secreta de JWT no está configurada.");
 
+// builder.Services.AddAuthentication(options =>
+// {
+//     // Le decimos a .NET que use JWT por defecto para validar y retar las peticiones
+//     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+// })
+// .AddJwtBearer(options =>
+// {
+//     options.RequireHttpsMetadata = false; // Cambiar a true en producción si usas HTTPS obligatorio
+//     options.SaveToken = true;
+//     options.TokenValidationParameters = new TokenValidationParameters
+//     {
+//         ValidateIssuerSigningKey = true,
+//         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+//         ValidateIssuer = true,
+//         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+//         ValidateAudience = true,
+//         ValidAudience = builder.Configuration["JwtSettings:Audience"],
+//         ValidateLifetime = true,
+//         ClockSkew = TimeSpan.Zero // Elimina el tiempo de gracia de 5 minutos por defecto
+//     };
+// });
+
 builder.Services.AddAuthentication(options =>
 {
-    // Le decimos a .NET que use JWT por defecto para validar y retar las peticiones
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // Cambiar a true en producción si usas HTTPS obligatorio
+    options.RequireHttpsMetadata = false;
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -94,7 +116,27 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = builder.Configuration["JwtSettings:Audience"],
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero // Elimina el tiempo de gracia de 5 minutos por defecto
+        ClockSkew = TimeSpan.Zero
+    };
+
+    // --- AÑADE ESTO PARA MANEJAR LOS ERRORES 401 Y 403 ---
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = context =>
+        {
+            // Se activa cuando el token falta, es inválido o expiró (401)
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsync("{\"message\": \"No autorizado: Token inválido, expirado o faltante.\"}");
+        },
+        OnForbidden = context =>
+        {
+            // Se activa cuando el usuario está logueado pero no tiene el rol necesario (403)
+            context.Response.StatusCode = 403;
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsync("{\"message\": \"Prohibido: No tienes los permisos necesarios para realizar esta acción.\"}");
+        }
     };
 });
 

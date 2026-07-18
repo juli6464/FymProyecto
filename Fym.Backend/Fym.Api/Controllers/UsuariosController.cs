@@ -25,28 +25,77 @@ public class UsuariosController : ControllerBase
     [HttpPost("registrar")]
     public async Task<IActionResult> RegistrarUsuario([FromBody] RegistroDto dto)
     {
-        // 1. Crear el usuario
-       var user = new User { 
-            Username = dto.Username, 
-            Email = dto.Email,
-            // Esto genera un hash compatible con tu método de Login actual
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password) 
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        // 2. Asignar rol por defecto "User"
-        var roleUser = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "User");
-        if (roleUser != null)
+        try
         {
-            _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = roleUser.Id });
-            await _context.SaveChangesAsync();
-        }
+            var user = new User { 
+                Username = dto.Username, 
+                Email = dto.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password) 
+            };
 
-        return Ok(new { message = "Usuario registrado exitosamente" });
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            var roleUser = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "User");
+            if (roleUser != null)
+            {
+                _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = roleUser.Id });
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new { message = "Usuario registrado exitosamente" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al registrar usuario", details = ex.Message });
+        }
+    }
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> ObtenerUsuarios()
+    {
+        try
+        {
+            var usuarios = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .Select(u => new {
+                    u.Id,
+                    u.Username,
+                    Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+                }).ToListAsync();
+
+            return Ok(usuarios);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener la lista de usuarios", details = ex.Message });
+        }
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        try
+        {
+            var usuario = await _context.Users
+                .Where(u => u.Id == id)
+                .Select(u => new {
+                    u.Username,
+                    u.Email,
+                    Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (usuario == null) return NotFound("Usuario no encontrado");
+
+            return Ok(usuario);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener el usuario", details = ex.Message });
+        }
+    }
     [Authorize(Roles = "SuperAdmin")]
     [HttpPost("{id}/asignar-rol")]
     public async Task<IActionResult> AsignarRol(Guid id, [FromBody] string nombreRol)
@@ -87,39 +136,5 @@ public class UsuariosController : ControllerBase
             await transaction.RollbackAsync();
             return StatusCode(500, "Error al actualizar el rol.");
         }
-    }
-
-    [Authorize]
-    [HttpGet]
-    public async Task<IActionResult> ObtenerUsuarios()
-    {
-        var usuarios = await _context.Users
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .Select(u => new {
-                u.Id,
-                u.Username,
-                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
-            }).ToListAsync();
-
-        return Ok(usuarios);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(Guid id)
-    {
-        // Hacemos el .Select() ANTES de ejecutar la consulta
-        var usuario = await _context.Users
-            .Where(u => u.Id == id) // Filtramos aquí
-            .Select(u => new {
-                u.Username,
-                u.Email,
-                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
-            })
-            .FirstOrDefaultAsync(); // Aquí obtenemos el objeto ya limpio
-
-        if (usuario == null) return NotFound("Usuario no encontrado");
-
-        return Ok(usuario); // Esto ahora sí funcionará siempre
     }
 }
