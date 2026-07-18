@@ -24,7 +24,11 @@
         <tr v-for="user in usuarios" :key="user.id">
             <td>{{ user.username }}</td>
             <td>
-            <button class="btn btn-sm btn-info">Ver</button>
+            <!-- Redirige a /usuarios/1, /usuarios/2, etc. -->
+            <router-link :to="{ name: 'usuario-detalle', params: { id: user.id } }" 
+                        class="btn btn-sm btn-info">
+                Ver
+            </router-link>
             </td>
         </tr>
       </tbody>

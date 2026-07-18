@@ -22,6 +22,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['SuperAdmin'] } // Opcional: proteger aquí también
     },
     {
+      path: '/usuarios/:id', // :id es el parámetro dinámico
+      name: 'usuario-detalle',
+      component: () => import('../views/DataView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/',
       redirect: '/login'
     }

@@ -77,4 +77,22 @@ public class UsuariosController : ControllerBase
 
         return Ok(usuarios);
     }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        // Hacemos el .Select() ANTES de ejecutar la consulta
+        var usuario = await _context.Users
+            .Where(u => u.Id == id) // Filtramos aquí
+            .Select(u => new {
+                u.Username,
+                u.Email,
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+            })
+            .FirstOrDefaultAsync(); // Aquí obtenemos el objeto ya limpio
+
+        if (usuario == null) return NotFound("Usuario no encontrado");
+
+        return Ok(usuario); // Esto ahora sí funcionará siempre
+    }
 }
