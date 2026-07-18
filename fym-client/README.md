@@ -19,7 +19,7 @@ Este proyecto es la aplicación cliente para la plataforma **Fym**, desarrollada
 
 *   **Node.js:** Versión 18.0.0 o superior instalada.
 *   **npm o yarn:** Gestor de paquetes configurado.
-*   **Backend Activo:** El proyecto [Fym.Backend](http://localhost:5252) debe estar ejecutándose previamente para poder realizar la autenticación.
+*   **Backend Activo:** El proyecto [Fym.Backend](https://github.com/juli6464/FymProyecto/tree/main/Fym.Backend) debe estar ejecutándose previamente para poder realizar la autenticación.
 
 ---
 
