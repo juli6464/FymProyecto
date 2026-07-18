@@ -51,15 +51,42 @@ public class UsuariosController : ControllerBase
     [HttpPost("{id}/asignar-rol")]
     public async Task<IActionResult> AsignarRol(Guid id, [FromBody] string nombreRol)
     {
-        var user = await _context.Users.FindAsync(id);
-        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == nombreRol);
+        // Usamos una transacción para asegurar que o se hace todo o no se hace nada
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        
+        try {
+            var user = await _context.Users.FindAsync(id);
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == nombreRol);
 
-        if (user == null || role == null) return NotFound("Usuario o Rol no encontrado");
+            if (user == null || role == null) return NotFound("Usuario o Rol no encontrado");
 
-        _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
-        await _context.SaveChangesAsync();
+            // 1. Buscamos TODOS los registros de roles de este usuario
+            var rolesActuales = await _context.UserRoles
+                .Where(ur => ur.UserId == id)
+                .ToListAsync();
 
-        return Ok(new { message = $"Rol {nombreRol} asignado correctamente" });
+            // 2. Eliminamos todos los roles que tenga actualmente
+            if (rolesActuales.Any())
+            {
+                _context.UserRoles.RemoveRange(rolesActuales);
+            }
+
+            // 3. Agregamos el nuevo rol
+            _context.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+
+            // 4. Guardamos cambios
+            await _context.SaveChangesAsync();
+            
+            // 5. Confirmamos la transacción
+            await transaction.CommitAsync();
+
+            return Ok(new { message = $"Rol {nombreRol} asignado exitosamente y roles anteriores eliminados." });
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, "Error al actualizar el rol.");
+        }
     }
 
     [Authorize]

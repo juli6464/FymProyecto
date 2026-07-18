@@ -13,25 +13,31 @@
     </div>
     
     <table class="table table-hover table-striped border">
-      <thead class="table-dark">
-        <tr>
-          <th>Nombre de Usuario</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- El v-for crea una fila por cada usuario -->
-        <tr v-for="user in usuarios" :key="user.id">
-            <td>{{ user.username }}</td>
-            <td>
-            <!-- Redirige a /usuarios/1, /usuarios/2, etc. -->
-            <router-link :to="{ name: 'usuario-detalle', params: { id: user.id } }" 
-                        class="btn btn-sm btn-info">
-                Ver
-            </router-link>
-            </td>
-        </tr>
-      </tbody>
+        <thead class="table-dark">
+            <tr>
+            <th>Nombre de Usuario</th>
+            <th>Roles</th> <!-- Añadimos columna de roles para ver el estado actual -->
+            <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="user in usuarios" :key="user.id">
+                <td>{{ user.username }}</td>
+                <td>{{ user.roles.join(', ') }}</td> <!-- Muestra los roles actuales -->
+                <td>
+                    <router-link :to="{ name: 'usuario-detalle', params: { id: user.id } }" 
+                                class="btn btn-sm btn-info me-2">Ver</router-link>
+                    
+                    <!-- Botón de Cambiar Rol: Solo si es SuperAdmin y no es ya Admin -->
+                    <button 
+                        v-if="authStore.userRoles.includes('SuperAdmin') && user.roles.includes('User') && !user.roles.includes('SuperAdmin')"
+                        @click="cambiarRol(user.id, 'SuperAdmin')"
+                        class="btn btn-sm btn-warning">
+                        Cambiar rol a Admin
+                    </button>
+                </td>
+            </tr>
+        </tbody>
     </table>
   </div>
 </template>
@@ -62,6 +68,28 @@ const fetchUsuarios = async () => {
     console.error('Error al obtener usuarios:', error);
   }
 };
+
+
+const cambiarRol = async (userId: string, nuevoRol: string) => {
+  if (!confirm(`¿Cambiar rol a ${nuevoRol}?`)) return;
+
+  try {
+    // La ruta debe empezar SIN slash si la baseURL ya lo incluye
+    // Axios hará: http://localhost:5252/api + /usuarios/...
+    await api.post(`/usuarios/${userId}/asignar-rol`, JSON.stringify(nuevoRol), {
+      headers: {
+        'Content-Type': 'application/json' // OBLIGATORIO para recibir un string en el Body
+      }
+    });
+
+    alert('Rol actualizado con éxito');
+    await fetchUsuarios(); // Recargamos la tabla
+  } catch (error: any) {
+    console.error('Detalle del error:', error.response?.data);
+    alert('Error al cambiar el rol: ' + (error.response?.data || 'Ver consola'));
+  }
+};
+
 // Ejecutar al montar el componente
 onMounted(() => {
   fetchUsuarios();
