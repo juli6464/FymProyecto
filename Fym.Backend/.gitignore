@@ -1,0 +1,29 @@
+# Carpetas de compilación y resultados
+[Bb]in/
+[Oo]bj/
+
+# Configuración local de usuario
+*.user
+*.userosscache
+*.sln.docstates
+
+# Archivos de base de datos local y caché
+*.db
+*.sqlite
+*.sdf
+*.suo
+*.user
+
+# Logs y archivos temporales
+*.log
+*.tmp
+*.bak
+*.orig
+
+# Carpetas del IDE
+.vs/
+.vscode/
+.idea/
+
+# Carpetas ocultas de publicación
+Publish/
