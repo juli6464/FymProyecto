@@ -1,5 +1,6 @@
 using Fym.Api.DTOs;
 using Fym.Api.Services;
+using Fym.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fym.Api.Controllers;
@@ -33,4 +34,6 @@ public class AuthController : ControllerBase
 
         return Ok(response);
     }
+
+    
 }

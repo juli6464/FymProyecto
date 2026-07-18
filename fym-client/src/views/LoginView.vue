@@ -36,12 +36,14 @@ const form = reactive({
 const handleLogin = async () => {
   try {
     error.value = '';
-    await authStore.login(form);
-    // Si todo sale bien, redirigimos al dashboard o lista de usuarios
+    // Al ejecutar esto, el store ya guarda el token y roles en localStorage
+    await authStore.login(form); 
+    
+    // Ahora, cuando el router haga el check en beforeEach, 
+    // encontrará el token y los roles y te permitirá pasar.
     router.push('/usuarios');
   } catch (err: any) {
     error.value = 'Credenciales incorrectas o servidor no responde.';
-    console.error(err);
   }
 };
 </script>

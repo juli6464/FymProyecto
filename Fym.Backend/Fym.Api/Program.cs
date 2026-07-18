@@ -2,13 +2,18 @@ using Fym.Api.Middlewares;
 using Microsoft.EntityFrameworkCore;
 using Fym.Api.Data;
 using Fym.Api.Services;
+using Fym.Api.Models; 
 
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// En Program.cs
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 // 1. CONFIGURACIÓN DE CORS PARA VITE + VUE 3
 builder.Services.AddCors(options =>
